@@ -1,5 +1,5 @@
 package warehouseapi
 
 const (
-	urnApiPrefix = "/api/v1"
+	UrnApiPrefix = "/api/v1"
 )

@@ -1,13 +1,18 @@
 package warehouseapp
 
-import "github.com/lvlBA/restApi/internal/warehouse"
+import (
+	controllersGoods "github.com/lvlBA/restApi/internal/controllers/warehouse"
+	"github.com/lvlBA/restApi/pkg/logger"
+)
 
 type ServiceImpl struct {
-	svc warehouse.Service
+	ctrlGoods controllersGoods.Service
+	log       logger.Logger
 }
 
-func New(svc warehouse.Service) *ServiceImpl {
+func New(ctrlGoods controllersGoods.Service, l logger.Logger) *ServiceImpl {
 	return &ServiceImpl{
-		svc: svc,
+		ctrlGoods: ctrlGoods,
+		log:       l,
 	}
 }

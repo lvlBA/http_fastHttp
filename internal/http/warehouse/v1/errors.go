@@ -7,7 +7,7 @@ import (
 
 	"github.com/valyala/fasthttp"
 
-	"github.com/lvlBA/restApi/internal/app/warehouse"
+	controllersApp "github.com/lvlBA/restApi/internal/controllers"
 )
 
 func createErrorFastHttpResponse(ctx *fasthttp.RequestCtx, status int, msg string, values ...interface{}) {
@@ -40,13 +40,13 @@ func httpErrorAdapter(resp http.ResponseWriter, err error) {
 
 func errorAdapter(err error) (code int, msg string) {
 	switch {
-	case errors.Is(err, warehouseapp.ErrorNotFound):
+	case errors.Is(err, controllersApp.ErrorNotFound):
 		code = fasthttp.StatusNotFound
 		msg = err.Error()
-	case errors.Is(err, warehouseapp.ErrorAlreadyExists):
+	case errors.Is(err, controllersApp.ErrorAlreadyExists):
 		code = fasthttp.StatusConflict
 		msg = err.Error()
-	case errors.Is(err, warehouseapp.ErrorInternal):
+	default:
 		code = fasthttp.StatusInternalServerError
 		msg = err.Error()
 	}

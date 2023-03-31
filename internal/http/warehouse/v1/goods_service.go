@@ -1,13 +1,9 @@
 package warehousehttp
 
 import (
-	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"io"
-	"net/http"
-
-	"github.com/julienschmidt/httprouter"
 	"github.com/valyala/fasthttp"
 
 	app "github.com/lvlBA/restApi/internal/app/warehouse"
@@ -24,82 +20,128 @@ func NewGoodsService(app app.Service) *GoodsServiceImpl {
 	}
 }
 
-func (s *GoodsServiceImpl) ServeFastHttp(ctx *fasthttp.RequestCtx) {
-	req, err := s.decodeFastHttpRequest(&ctx.Request)
+func (s *GoodsServiceImpl) HandleReceiveGoods(ctx *fasthttp.RequestCtx) {
+	req, err := s.decodeReceiveGoodsRequest(ctx)
 	if err != nil {
-		createErrorFastHttpResponse(ctx, fasthttp.StatusInternalServerError, "failed to decode request %s", err)
+		createErrorFastHttpResponse(ctx, fasthttp.StatusInternalServerError, "failed to decode request: %s", err)
 		return
 	}
-	resp, err := s.app.Receive(ctx, req)
+
+	resp, err := s.app.ReceiveGoods(ctx, req)
 	if err != nil {
 		fastHttpErrorAdapter(ctx, err)
 		return
 	}
-	if err := s.encodeFastHttpResponse(&ctx.Response, resp); err != nil {
+
+	if err := s.encodeReceiveGoodsResponse(&ctx.Response, resp); err != nil {
 		createErrorFastHttpResponse(ctx, fasthttp.StatusInternalServerError, "failed to encode response: %s", err)
 		return
 	}
-
 }
 
-func (s *GoodsServiceImpl) decodeFastHttpRequest(req *fasthttp.Request) (*api.ReceiveGoodsRequest, error) {
-	var result api.ReceiveGoodsRequest
-	err := json.Unmarshal(req.Body(), &result)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal data: %w", err)
+func (s *GoodsServiceImpl) decodeReceiveGoodsRequest(ctx *fasthttp.RequestCtx) (*api.ReceiveGoodsRequest, error) {
+	id, ok := ctx.UserValue("id").(string)
+	if !ok {
+		return nil, errors.New("id is not set")
 	}
+
+	result := api.ReceiveGoodsRequest{
+		ID: id,
+	}
+
 	return &result, nil
 }
 
-func (s *GoodsServiceImpl) encodeFastHttpResponse(r *fasthttp.Response, resp *api.ReceiveGoodsResponse) (err error) {
+func (s *GoodsServiceImpl) encodeReceiveGoodsResponse(r *fasthttp.Response, resp *api.ReceiveGoodsResponse) (err error) {
 	r.Header.Set("Content-Type", "application/json")
 	b, err := json.Marshal(resp)
 	if err != nil {
 		return fmt.Errorf("failed to marshal data: %w", err)
 	}
 	r.SetBody(b)
+
 	return nil
 }
 
-func (s *GoodsServiceImpl) ServeHttp(respHttp http.ResponseWriter, reqHttp *http.Request, params httprouter.Params) {
-	ctx := context.Background()
-
-	req, err := s.decodeHttpRequest(reqHttp)
+func (s *GoodsServiceImpl) HandleCreateGoods(ctx *fasthttp.RequestCtx) {
+	req, err := s.decodeCreateGoodsRequest(ctx)
 	if err != nil {
-		createErrorHttpResponse(respHttp, fasthttp.StatusInternalServerError, "failed to decode request: %s", err)
+		createErrorFastHttpResponse(ctx, fasthttp.StatusInternalServerError, "failed to decode request: %s", err)
 		return
 	}
 
-	resp, err := s.app.Receive(ctx, req)
+	resp, err := s.app.CreateGoods(ctx, req)
 	if err != nil {
-		httpErrorAdapter(respHttp, err)
+		fastHttpErrorAdapter(ctx, err)
 		return
 	}
 
-	if err := s.encodeHttpResponse(respHttp, resp); err != nil {
-		createErrorHttpResponse(respHttp, fasthttp.StatusInternalServerError, "failed to encode response: %s", err)
+	if err := s.encodeCreateGoodsResponse(&ctx.Response, resp); err != nil {
+		createErrorFastHttpResponse(ctx, fasthttp.StatusInternalServerError, "failed to encode response: %s", err)
 		return
 	}
 }
 
-func (s *GoodsServiceImpl) decodeHttpRequest(req *http.Request) (*api.ReceiveGoodsRequest, error) {
-	body, err := io.ReadAll(req.Body)
+func (s *GoodsServiceImpl) decodeCreateGoodsRequest(ctx *fasthttp.RequestCtx) (*api.CreateGoodsRequest, error) {
+	var result api.CreateGoodsRequest
+	err := json.Unmarshal(ctx.Request.Body(), &result)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read data: %w", err)
-	}
-	var result api.ReceiveGoodsRequest
-	if err := json.Unmarshal(body, &result); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal data: %w", err)
 	}
+
 	return &result, nil
 }
 
-func (s *GoodsServiceImpl) encodeHttpResponse(r http.ResponseWriter, resp *api.ReceiveGoodsResponse) (err error) {
-	r.Header().Set("Content-Type", "application/json")
+func (s *GoodsServiceImpl) encodeCreateGoodsResponse(r *fasthttp.Response, resp *api.CreateGoodsResponse) (err error) {
+	r.Header.Set("Content-Type", "application/json")
 	b, err := json.Marshal(resp)
 	if err != nil {
 		return fmt.Errorf("failed to marshal data: %w", err)
 	}
-	_, _ = r.Write(b)
+	r.SetBody(b)
+
+	return nil
+}
+
+func (s *GoodsServiceImpl) HandleDeleteGoods(ctx *fasthttp.RequestCtx) {
+	req, err := s.decodeDeleteGoodsRequest(ctx)
+	if err != nil {
+		createErrorFastHttpResponse(ctx, fasthttp.StatusInternalServerError, "failed to decode request: %s", err)
+		return
+	}
+
+	resp, err := s.app.DeleteGoods(ctx, req)
+	if err != nil {
+		fastHttpErrorAdapter(ctx, err)
+		return
+	}
+
+	if err := s.encodeDeleteGoodsResponse(&ctx.Response, resp); err != nil {
+		createErrorFastHttpResponse(ctx, fasthttp.StatusInternalServerError, "failed to encode response: %s", err)
+		return
+	}
+}
+
+func (s *GoodsServiceImpl) decodeDeleteGoodsRequest(ctx *fasthttp.RequestCtx) (*api.DeleteGoodsRequest, error) {
+	id, ok := ctx.UserValue("id").(string)
+	if !ok {
+		return nil, errors.New("id is not set")
+	}
+
+	result := api.DeleteGoodsRequest{
+		ID: id,
+	}
+
+	return &result, nil
+}
+
+func (s *GoodsServiceImpl) encodeDeleteGoodsResponse(r *fasthttp.Response, resp *api.DeleteGoodsResponse) (err error) {
+	r.Header.Set("Content-Type", "application/json")
+	b, err := json.Marshal(resp)
+	if err != nil {
+		return fmt.Errorf("failed to marshal data: %w", err)
+	}
+	r.SetBody(b)
+
 	return nil
 }

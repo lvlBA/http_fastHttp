@@ -1,6 +1,6 @@
 package models
 
 type Goods struct {
-	ID   string
+	Meta
 	Name string
 }

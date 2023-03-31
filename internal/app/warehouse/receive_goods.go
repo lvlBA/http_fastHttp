@@ -4,22 +4,23 @@ import (
 	"context"
 	"fmt"
 
+	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
+	errors "github.com/lvlBA/restApi/internal/controllers"
 	"github.com/lvlBA/restApi/internal/models"
-	"github.com/lvlBA/restApi/internal/warehouse"
 	api "github.com/lvlBA/restApi/pkg/warehouse/v1"
 )
 
-func (s *ServiceImpl) Receive(ctx context.Context, req *api.ReceiveGoodsRequest) (*api.ReceiveGoodsResponse, error) {
+func (s *ServiceImpl) ReceiveGoods(ctx context.Context, req *api.ReceiveGoodsRequest) (*api.ReceiveGoodsResponse, error) {
 	if err := validateReceiveGoodsReq(req); err != nil {
-		return nil, err
+		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
-	// validateReq...
 
-	resp, err := s.svc.ReceiveGoods(ctx, &warehouse.ReceiveGoodsParams{
-		Name: req.Name,
-	})
+	resp, err := s.ctrlGoods.ReceiveGoods(ctx, req.ID)
 	if err != nil {
-		return nil, fmt.Errorf("error receive goods: %w", adaptError(err))
+		return nil, fmt.Errorf("error receive goods: %w", errors.AdaptingErrorDB(err))
 	}
 
 	return &api.ReceiveGoodsResponse{
@@ -28,8 +29,9 @@ func (s *ServiceImpl) Receive(ctx context.Context, req *api.ReceiveGoodsRequest)
 }
 
 func validateReceiveGoodsReq(req *api.ReceiveGoodsRequest) error {
-	// ..
-	return nil
+	return validation.Errors{
+		"ID": validation.Validate(req.ID, validation.Required),
+	}.Filter()
 }
 
 func adaptGoodsModel(model *models.Goods) *api.Goods {
